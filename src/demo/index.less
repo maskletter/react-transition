@@ -1,0 +1,61 @@
+button {
+    border: none;
+    background: white;
+    border: 1px solid #f5f5f5;
+    margin-right: 15px;
+    padding: 7px 15px;
+    font-size: 14px;
+    cursor: pointer;
+}
+:root {
+    --time: 0.8s;
+}
+blockquote {
+    background: #f5f5f5;
+    border-left: 5px solid #ccc;
+    margin-left: 0px;
+    padding: 10px 10px;
+}
+.block,
+.block-content {
+    width: 50px;
+    height: 50px;
+}
+
+.block-content {
+    position: relative;
+    left: 100px;
+}
+.block-list {
+    background: #ccc;
+    padding: 10px 10px;
+    margin-bottom: 10px;
+}
+.block-scroll {
+    // max-height: 300px;
+    width: 300px;
+}
+
+.show1-enter-active,
+.show1-leave-active {
+    transition: opacity var(--time);
+}
+
+.show1-enter,
+.show1-leave-to,
+.show2-enter,
+.show2-leave-to {
+    opacity: 0;
+}
+.show2-enter-active,
+.show2-leave-active {
+    transition: all var(--time);
+    transform: translateX(0px);
+}
+
+.show2-enter {
+    transform: translateX(100px);
+}
+.show2-leave-to {
+    transform: translateX(-100px);
+}

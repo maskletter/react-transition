@@ -51,6 +51,8 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
         return transformDiffItem(latestJsx)
     }
     const latestKeys = arrayToObject(latestJsx, 'key');
+    // console.log(arrayToObject(latestJsx, 'key'))
+    // console.log(prevJsx)
     let newLatset: DiffItem[] = [];
     for(const index in prevJsx) {
         const { key, item, status, transition, destory } = prevJsx[index];
@@ -59,7 +61,8 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
         // 来自上一个diff的被删除元素
         if (destory && status === StatusRemove) continue;
         if (latestKeys[key]) {
-            latestKeys[key].index = Number(index);
+            // todo: 这里的index是否将旧id赋值给新的状态有待研究
+            // latestKeys[key].index = Number(index);
             /**
              * 如果在旧diff里是删除状态(status === StatusRemove)，并且新的diff里依然存在，表示元素又被添加，标注为StatusÇreate
              * 如果在旧diff里动画仍在运行中，恢复上一个原有状态
@@ -83,7 +86,7 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
             })
         }
     }
-
+    // console.log(latestKeys)
     let prevIndex = 0;
     for(let key in latestKeys) {
         const { prev, item } = latestKeys[key]

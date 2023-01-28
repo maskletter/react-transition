@@ -164,6 +164,13 @@ const Transition: Transition = function (props: Parameters<Transition>[0]) {
             }
             setCurrentChldren(false)
             catchPrevChildren.current = props.children;
+        } else if(props.mode === 'time' && isNumber(props.modeTime)) {
+            setPrevChldren(renderChildren('prev') as any)
+            setCurrentChldren(false)
+            catchPrevChildren.current = props.children;
+            modeTimeout.current = window.setTimeout(() => {
+                setCurrentChldren(renderChildren('current') as any)
+            }, Number(props.modeTime))
         } else {
             setPrevChldren(renderChildren('prev') as any)
             setCurrentChldren(renderChildren('current') as any)
@@ -303,6 +310,8 @@ const Css = (props: Parameters<TransitionGroup['Css']>[0]) => {
             <div
                 style={{
                     position: isSize ? 'absolute' : 'relative',
+                    width: '100%',
+                    height: '100%'
                 }}
             >
                 {children}
@@ -452,16 +461,17 @@ const Children: Transition['Children'] = function (
 
     const clone = () => {
         if (children.type === Children || children.type === Css) {
+            const cname = children.props.children.props.className;
             return cloneElement(children, {
                 children: cloneElement(children.props.children, {
                     ref: $el,
-                    className: props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass
+                    className: `${cname} ${props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass}`
                 })
             })
         } else {
             return cloneElement(children, {
                 ref: $el,
-                className: props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass
+                className: `${children.props.className} ${props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass}`
             })
         }
     }
