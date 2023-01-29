@@ -40,6 +40,7 @@ const Demo = () => {
   <code>type</code> - string，指定过渡事件类型，侦听过渡何时结束。有效值为 "transition" 和 "animation"。默将自动检测出持续时间长的为过渡事件类型。<br />
   <code>mode</code> - string，控制离开/进入过渡的时间序列。有效的模式有 "out-in" 和 "in-out"；默认同时进行。<br />
   <code>modeTime</code> - number，设置组件进程离场时机<br />
+  <code>activeStyle</code> - css | () => css，动画过程中的样式，加载到执行元素上<br />
   <code>duration</code> - number | { enter: number, leave: number } 指定过渡的持续时间。默认情况下，会等待过渡所在根元素的第一个 transitionend 或 animationend 事件。<br />
   <code>absolute</code> - boolean，设置元素过渡过程中为绝对定位<br />
   <code>absoluteStyle</code> - css，绝对定位中加载的样式<br />
