@@ -1,6 +1,7 @@
 import React, { cloneElement, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { isArray, isFunction, isNull, isNumber, isObject, listenerTransitionEnd, TransitionType, useLatest } from './util';
-import { diff, DiffItem, StatusDefault, StatusRemove, StatusÇreate } from './diff'
+import { diff, DiffItem, StatusDefault, StatusRemove, StatusCreate } from './diff'
+
 
 const TransitionClassName = [
     'enterClass',
@@ -347,47 +348,6 @@ const Children: Transition['Children'] = function (
         latestProps.current[name] && (latestProps.current as any)[name]();
     };
 
-    useLayoutEffect(() => {
-        let _run = run;
-        // status不存在，表示为用户直接调用<Children />
-        if (!props.status) return;
-        if (type.current !== props.status && props.status !== 'old' && !disabledTransition) {
-            _run = true;
-            isAnimationEnd.current = false;
-            requestAnimationFrame(() => {
-                if (!run) {
-                    $el.current.style.transitionDuration = '0s'
-                }
-                // const currentClassName = ($el.current.className || '')
-                //     .replace(classNaames.leaveActiveClass, '')
-                //     .replace(classNaames.enterActiveClass, '')
-                //     .replace(classNaames.enterToClass, '')
-                //     .replace(classNaames.leaveToClass, '')
-                    $el.current.classList.remove(
-                        classNaames.leaveActiveClass,
-                        classNaames.enterActiveClass,
-                        classNaames.enterToClass,
-                        classNaames.leaveToClass,
-                    )
-                // $el.current.className = currentClassName + ' ' + (props.status === 'remove' ? classNaames.leaveActiveClass : classNaames.enterActiveClass);
-                $el.current.classList.add(props.status === 'remove' ? classNaames.leaveActiveClass : classNaames.enterActiveClass)
-                requestAnimationFrame(() => {
-                    $el.current.style.transitionDuration = '';
-                    $el.current.classList.remove(classNaames.enterClass, classNaames.leaveClass);
-                    enterHook();
-                })
-            })
-            stopTransitionEnd.current();
-        }
-        setRun(_run);
-        type.current = props.status as any;
-        setChildren(renderChildren(_run, !_run));
-    }, [props.status]);
-
-    const renderChildren = (_run: boolean, active = false) => {
-        const status = !_run ? 'default' : props.status === 'new' ? 'enter' : 'leave';
-        return isFunction(props.children) ? (props as any).children(status, active) : props.children;
-    };
 
     const classNaames = useMemo(() => {
         return {
@@ -409,6 +369,54 @@ const Children: Transition['Children'] = function (
         props.leaveClass
     ]);
 
+    const classNameHook = useMemo(() => {
+        return {
+            before: props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass,
+            active: props.status === 'remove' ? classNaames.leaveActiveClass : classNaames.enterActiveClass,
+            to: props.status === 'new' ? classNaames.enterToClass : classNaames.leaveToClass,
+        }
+    }, [
+        props.status,
+        classNaames.leaveActiveClass,
+        classNaames.enterActiveClass,
+        classNaames.enterToClass,
+        classNaames.leaveToClass,
+        classNaames.leaveClass,
+        classNaames.enterClass
+    ])
+
+    useLayoutEffect(() => {
+        let _run = run;
+        // status不存在，表示为用户直接调用<Children />
+        if (!props.status) return;
+        if (type.current !== props.status && props.status !== 'old' && !disabledTransition) {
+            _run = true;
+            isAnimationEnd.current = false;
+            requestAnimationFrame(() => {
+                    $el.current.classList.remove(
+                        classNaames.leaveActiveClass,
+                        classNaames.enterActiveClass,
+                        classNaames.enterToClass,
+                        classNaames.leaveToClass,
+                    )
+                $el.current.classList.add(classNameHook.active)
+                requestAnimationFrame(() => {
+                    $el.current.classList.remove(classNaames.enterClass, classNaames.leaveClass);
+                    enterHook();
+                })
+            })
+            stopTransitionEnd.current();
+        }
+        setRun(_run);
+        type.current = props.status as any;
+        setChildren(renderChildren(_run, !_run));
+    }, [props.status]);
+
+    const renderChildren = (_run: boolean, active = false) => {
+        const status = !_run ? 'default' : props.status === 'new' ? 'enter' : 'leave';
+        return isFunction(props.children) ? (props as any).children(status, active) : props.children;
+    };
+
     const duration = useMemo(() => {
         if (!props.duration) return 0;
         let enter = 0;
@@ -423,16 +431,22 @@ const Children: Transition['Children'] = function (
         return props.status === 'new' ? enter : leave;
     }, [props.duration, props.status])
 
+    const hookLifeCycle = useMemo(() => {
+        return {
+            before: props.status === 'remove' ? 'onBeforeLeave' : 'onBeforeEnter' as any,
+            run: props.status === 'remove' ? 'onLeave' : 'onEnter' as any,
+            after: props.status === 'remove' ? 'onAfterLeave' : 'onAfterEnter' as any
+        }
+    }, [props.status])
+
     const enterHook = () => {
-        const className =
-            props.status === 'new' ? classNaames.enterToClass : classNaames.leaveToClass;
-        hook(props.status === 'remove' ? 'onBeforeLeave' : 'onBeforeEnter');
-        $el.current.classList.add(className);
-        hook(props.status === 'remove' ? 'onLeave' : 'onEnter');
+        hook(hookLifeCycle.before);
+        $el.current.classList.add(classNameHook.to);
+        hook(hookLifeCycle.run);
         setChildren(renderChildren(true, true));
         const end = () => {
             if (!$el.current) return;
-            hook(props.status === 'remove' ? 'onAfterLeave' : 'onAfterEnter');
+            hook(hookLifeCycle.after);
             setRun(false);
             setChildren(renderChildren(false, false));
             hook('onTransitionEnd');
@@ -461,32 +475,20 @@ const Children: Transition['Children'] = function (
 
     const clone = () => {
         if (children.type === Children || children.type === Css) {
-            const cname = children.props.children.props.className;
             return cloneElement(children, {
                 children: cloneElement(children.props.children, {
                     ref: $el,
-                    className: `${cname} ${props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass}`
+                    className: `${classNameHook.before} ${children.props.children.props.className}`
                 })
             })
         } else {
             return cloneElement(children, {
                 ref: $el,
-                className: `${children.props.className} ${props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass}`
+                className: `${classNameHook.before} ${children.props.className}`
             })
         }
     }
-    // console.log('children', children)
-    // console.log('children', clone())
-    // console.log('children', children.type === Children ? cloneElement() : <div></div>)
-    // return cloneElement(children, {
-    //     ref: $el
-    // })
     return clone()
-    // return (
-    //     <div ref={$el as any} style={{ animationFillMode: 'forwards' }}>
-    //         {children}
-    //     </div>
-    // );
 } as any;
 
 // eslint-disable-next-line no-redeclare
@@ -496,6 +498,8 @@ const TransitionGroup: TransitionGroup = function (props: { children?: any; name
     const children = useMemo(() => {
         const _children = isArray(props.children) ? props.children : isNull(props.children) ? [] : [props.children]
         if (!hasChangeChildren(catchPrevChildren.current, _children)) {
+            // 如果prevChildren.current是undefined的话表示初始化时候没有子元素，需要将当前的元素赋值给prevChildren
+            if (!prevChildren.current) prevChildren.current = _children;
             return _children;
         }
         catchPrevChildren.current = _children;
@@ -511,7 +515,7 @@ const TransitionGroup: TransitionGroup = function (props: { children?: any; name
             return <Children
                 name={props.name}
                 {...childrenProps}
-                status={status === StatusÇreate ? 'new' : 'remove'}
+                status={status === StatusCreate ? 'new' : 'remove'}
                 key={item.key}
                 onTransitionEnd={() => {
                     data.transition = false;

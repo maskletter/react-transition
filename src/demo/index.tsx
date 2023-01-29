@@ -8,7 +8,7 @@ import './index.less'
 const A = () => {
     const [show, _setShow] = useState([false, true, false, false, false, false])
     const [list, setList] = useState([1, 2, 3, 4, 5, 6, 7])
-    const [list2, setList2] = useState([1, 2, 3, 4, 5, 6, 7])
+    const [list2, setList2] = useState([1,3,4])
     const setShow = (idx: number, res: boolean) => {
         show[idx] = res;
         _setShow([...show])
@@ -134,9 +134,10 @@ const A = () => {
         <h3>更平滑的过度</h3>
         <button onClick={() => {
             const _newList = [...list2];
-            _newList.splice(1, 0, Math.random())
-            _newList.splice(4, 0, Math.random())
+            // _newList.splice(1, 0, Math.random())
+            // _newList.splice(4, 0, Math.random())
             console.log('addd', _newList)
+            _newList.push(Math.random())
             setList2(_newList)
         }}>追加</button>
         <button onClick={() => {

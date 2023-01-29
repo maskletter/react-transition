@@ -1,9 +1,9 @@
 import { isNull } from "./util";
 
 export const StatusDefault = Symbol('default');
-export const StatusÇreate = Symbol('create');
+export const StatusCreate = Symbol('create');
 export const StatusRemove = Symbol('remove');
-export type Status = typeof StatusDefault | typeof StatusÇreate | typeof StatusRemove;
+export type Status = typeof StatusDefault | typeof StatusCreate | typeof StatusRemove;
 
 
 export interface DiffItem {
@@ -69,7 +69,7 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
              * 否则打标为StatusDefault
              */
             newLatset.push({ 
-                status: status === StatusRemove ? StatusÇreate : transition ? status :  StatusDefault,
+                status: status === StatusRemove ? StatusCreate : transition ? status :  StatusDefault,
                 key,
                 transition: transition,
                 item: latestKeys[key]?.item || false,
@@ -92,7 +92,7 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
         const { prev, item } = latestKeys[key]
         if (!prev) {
             newLatset.splice(prevIndex++, 0, {
-                status: StatusÇreate,
+                status: StatusCreate,
                 item,
                 key,
                 transition: false,
@@ -100,7 +100,7 @@ function diff(latestJsx: any[], prevJsx?: DiffItem[]): Array<DiffItem> {
             })
         } else {
             newLatset.splice(prev.index+1, 0, {
-                status: StatusÇreate,
+                status: StatusCreate,
                 item,
                 key,
                 transition: false,
