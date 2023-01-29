@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Transition, TransitionGroup } from '../index'
 import './index.less'
@@ -9,10 +9,21 @@ const A = () => {
     const [show, _setShow] = useState([false, true, false, false, false, false])
     const [list, setList] = useState([1, 2, 3, 4, 5, 6, 7])
     const [list2, setList2] = useState([1,3,4])
+    const [list3, setList3] = useState([1,2])
+    const currentListLength = useRef(list.length);
     const setShow = (idx: number, res: boolean) => {
         show[idx] = res;
         _setShow([...show])
     }
+
+    const getTime = (idx: number) => {
+        if (idx > currentListLength.current) {
+            return 140 * (idx - currentListLength.current);
+        } else {
+            return 0
+        }
+    }
+
     return <div style={{
         padding: 20
     }}>
@@ -22,7 +33,9 @@ const A = () => {
         <button onClick={() => setShow(0, true)}>展示</button>
         <button onClick={() => setShow(0, false)}>隐藏</button>
         <div className='block-content'>
-            <Transition name='show1'>
+            <Transition name='show1' activeStyle={() => {
+                return { transitionDelay: '0.2s' }
+            }}>
                 {
                     show[0] ? <div className='block' key={'show1'} style={{ background: 'red' }}></div> : false
                 }
@@ -134,17 +147,16 @@ const A = () => {
         <h3>更平滑的过度</h3>
         <button onClick={() => {
             const _newList = [...list2];
-            // _newList.splice(1, 0, Math.random())
-            // _newList.splice(4, 0, Math.random())
-            console.log('addd', _newList)
-            _newList.push(Math.random())
+            _newList.splice(1, 0, Math.random())
+            _newList.splice(4, 0, Math.random())
+            // console.log('addd', _newList)
+            // _newList.push(Math.random())
             setList2(_newList)
         }}>追加</button>
         <button onClick={() => {
             const _newList = [...list2];
             _newList.splice(1, 1)
             _newList.splice(4, 1)
-            console.log('remove', _newList)
             setList2(_newList)
         }}>删减</button>
         <div className='block-scroll'>
@@ -154,13 +166,45 @@ const A = () => {
                         {
                             (status, active) => <TransitionGroup.Css status={status} active={active} initStyle={{
                                 height: 0
-                            }} defaultStyle={{height: 48}} transition='.8s'>
+                            }} activeStyle={{height: 48}} transition='.8s'>
                                 <div className='block-list'>{item}，{active?'激活':'禁止'}，{status}</div>
                             </TransitionGroup.Css>
                         }
                     </Transition.Children>)
                 }
             </TransitionGroup>
+        </div>
+        <h3>更平滑的过度</h3>
+        <button onClick={() => {
+            const _newList = [...list3];
+            currentListLength.current = list3.length;
+            _newList.push(Math.random())
+            _newList.push(Math.random())
+            setList3(_newList)
+        }}>追加</button>
+        <button onClick={() => {
+            const _newList = [...list3];
+            _newList.splice(1, 1)
+            _newList.splice(4, 1)
+            setList3(_newList)
+        }}>删减</button>
+        <div className='block-scroll'>
+            <TransitionGroup name='show2'>
+                {
+                    list3.map((item, idx) => <Transition.Children key={item} activeStyle={{
+                        transitionDelay: `${getTime(idx)}ms`
+                    }}>
+                        {
+                            (status, active) => <TransitionGroup.Css status={status} active={active} initStyle={{
+                                height: status === 'leave' ? 0 : 48
+                            }} activeStyle={{height: 48}} transition='.8s'>
+                                <div className='block-list'>{getTime(idx)}</div>
+                            </TransitionGroup.Css>
+                        }
+                    </Transition.Children>)
+                }
+            </TransitionGroup>
+            <div style={{height:200}}></div>
         </div>
     </div>
 }

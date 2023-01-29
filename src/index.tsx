@@ -45,13 +45,18 @@ interface Transition {
             type?: TransitionType;
             appear?: boolean;
             mode?: TransitionMode;
-            duration?: Duration,
+            duration?: Duration;
+            /**动画过程中的样式，加载到执行元素上 */
+            activeStyle?: React.CSSProperties | ((status: 'default' | 'enter' | 'leave') => React.CSSProperties);
             /**
              * 如果设置了mode默认是根据上一个组件动画结束切换，可以通过设置此属性修改组件进程离场时机
              */
             modeTime?: TransitionModeTime;
+            /**
+             * 设置absolute之后，会在元素上层创建一个relative属性元素
+             */
             absolute?: boolean;
-            /**绝对定位情况下样式 */
+            /**绝对定位情况下样式，加载到执行元素上一次创建带有relative的元素上 */
             absoluteStyle?: React.CSSProperties;
         } & TransitionClassName &
             TransitionEvent,
@@ -63,6 +68,8 @@ interface Transition {
             name?: string;
             type?: TransitionType;
             disabled?: boolean;
+            /**动画过程中的样式 */
+            activeStyle?: React.CSSProperties | ((status: 'default' | 'enter' | 'leave') => React.CSSProperties);
             duration?: Duration;
         } & TransitionClassName &
             TransitionEvent,
@@ -82,7 +89,7 @@ interface TransitionGroup {
      */
     Css: (props: {
         /**正常状态样式 */
-        defaultStyle?: React.CSSProperties;
+        activeStyle?: React.CSSProperties;
         /**进场时样式 */
         initStyle?: React.CSSProperties;
         /**进场时样式 */
@@ -222,6 +229,7 @@ const Transition: Transition = function (props: Parameters<Transition>[0]) {
             {...getTransitionEvent}
             status={status}
             duration={props.duration}
+            activeStyle={props.activeStyle}
             type={props.type || 'transition'}
             onTransitionEnd={() => {
                 jici.current++;
@@ -286,7 +294,7 @@ const Css = (props: Parameters<TransitionGroup['Css']>[0]) => {
         style = {},
         transition,
         initStyle = {},
-        defaultStyle = {},
+        activeStyle = {},
     } = props;
     if (status === 'default') {
         return children;
@@ -294,10 +302,10 @@ const Css = (props: Parameters<TransitionGroup['Css']>[0]) => {
     // eslint-disable-next-line no-nested-ternary
     const css = active
         ? status === 'enter'
-            ? defaultStyle
+            ? activeStyle
             : initStyle
         : status === 'leave'
-            ? defaultStyle
+            ? activeStyle
             : initStyle;
     // eslint-disable-next-line no-void
     const isSize = css.height !== void 0 || css.width !== void 0;
@@ -463,6 +471,15 @@ const Children: Transition['Children'] = function (
 
     }
 
+    const activeStyle = useMemo(() => {
+        if (!props.activeStyle) return {};
+        if (isFunction(props.activeStyle)) {
+            return (props.activeStyle as Function)(props.status === 'new' ? 'enter' : 'leave')
+        } else {
+            return props.activeStyle;
+        }
+    }, [props.activeStyle, props.status])
+
     if (!props.status) {
         return renderChildren(false, false);
     }
@@ -475,16 +492,25 @@ const Children: Transition['Children'] = function (
 
     const clone = () => {
         if (children.type === Children || children.type === Css) {
+            const _children = children.props.children;
             return cloneElement(children, {
-                children: cloneElement(children.props.children, {
+                children: cloneElement(_children, {
                     ref: $el,
-                    className: `${classNameHook.before} ${children.props.children.props.className}`
+                    className: `${classNameHook.before} ${_children.props.className}`,
+                    style: {
+                        ..._children.props.style,
+                        ...activeStyle
+                    }
                 })
             })
         } else {
             return cloneElement(children, {
                 ref: $el,
-                className: `${classNameHook.before} ${children.props.className}`
+                className: `${classNameHook.before} ${children.props.className}`,
+                style: {
+                    ...children.props.style,
+                    ...activeStyle
+                }
             })
         }
     }
