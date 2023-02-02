@@ -3,6 +3,14 @@
 
 ⚠️元素必须设置key，否则会导致动画无效
 
+
+## 快速安装
+```shell
+npm i @darkui/react-transition --save
+```
+
+更多demo以及api地址[中文文档](https://maskletter.github.io/darkui-popup-doc/dist/#/darkui-popup-doc/dist/transition/api)
+
 ```tsx
 import React, { useState } from 'react';
 import { Transition, TransitionGroup } from "./index";
