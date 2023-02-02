@@ -26,8 +26,8 @@ const TransitionEventName = [
     'onAfterAppear',
     'onTransitionEnd',
 ] as const;
-type TransitionTuple<T extends ReadonlyArray<string | number>, J> = {
-    [a in T[number]]?: J;
+type TransitionTuple<T extends ReadonlyArray<string | number>, J, K = null, Y = null> = {
+    [a in T[number]]?: a extends K ? Y : J;
 };
 type Duration = number | { leave?: number, enter?: number }
 type TransitionTupleFloat<T extends ReadonlyArray<string | number>> = T[number];
@@ -35,13 +35,14 @@ type TransitionMode = 'out-in' | 'in-out' | 'time';
 type TransitionModeTime = number;
 // eslint-disable-next-line no-redeclare
 type TransitionClassName = TransitionTuple<typeof TransitionClassName, string>;
-type TransitionEvent = TransitionTuple<typeof TransitionEventName, () => void>;
+type TransitionEvent = TransitionTuple<typeof TransitionEventName, (el: HTMLElement) => void, 'onEnter' | 'onLeave', (el: HTMLElement, done: Function) => void>;
 type TransitionEventNameType = TransitionTupleFloat<typeof TransitionEventName>;
 interface Transition {
     (
         props: {
             children?: any;
             name?: string;
+            css?: boolean;
             type?: TransitionType;
             appear?: boolean;
             mode?: TransitionMode;
@@ -65,6 +66,7 @@ interface Transition {
         props: {
             children?: JSX.Element | never[] | ((status: 'default' | 'enter' | 'leave', active: boolean) => JSX.Element);
             status?: 'remove' | 'new' | 'old';
+            css?: boolean;
             name?: string;
             type?: TransitionType;
             disabled?: boolean;
@@ -76,7 +78,7 @@ interface Transition {
     ) => JSX.Element;
 }
 interface TransitionGroup {
-    (props: { children?: any; name?: string }): JSX.Element;
+    (props: { children?: any; name?: string; type?: TransitionType; css?: boolean; }): JSX.Element;
     /**
      * 用于拓展transition-group进场离场动画效果
      *
@@ -172,7 +174,7 @@ const Transition: Transition = function (props: Parameters<Transition>[0]) {
             }
             setCurrentChldren(false)
             catchPrevChildren.current = props.children;
-        } else if(props.mode === 'time' && isNumber(props.modeTime)) {
+        } else if (props.mode === 'time' && isNumber(props.modeTime)) {
             setPrevChldren(renderChildren('prev') as any)
             setCurrentChldren(false)
             catchPrevChildren.current = props.children;
@@ -228,22 +230,23 @@ const Transition: Transition = function (props: Parameters<Transition>[0]) {
             {...getTransitionClass}
             {...getTransitionEvent}
             status={status}
+            css={props.css}
             duration={props.duration}
             activeStyle={props.activeStyle}
             type={props.type || 'transition'}
-            onTransitionEnd={() => {
+            onTransitionEnd={(e) => {
                 jici.current++;
                 if (jici.current === 2) {
                     setClear(true);
-                    props.onTransitionEnd && props.onTransitionEnd()
+                    props.onTransitionEnd && props.onTransitionEnd(e)
                 }
                 transitionEnd && transitionEnd();
-            }}>{children}</Children> : (jici.current++,false)
+            }}>{children}</Children> : (jici.current++, false)
     }
 
     const renderChildren = (...argv:
-        [ type: 'prev' | 'current', transitionEnd?: Function, ] |
-        [ type: 'prev' | 'current', children?: any, transitionEnd?: Function]
+        [type: 'prev' | 'current', transitionEnd?: Function,] |
+        [type: 'prev' | 'current', children?: any, transitionEnd?: Function]
     ) => {
         let [type, children, transitionEnd] = argv;
         if (typeof children === 'function') {
@@ -275,10 +278,10 @@ const Transition: Transition = function (props: Parameters<Transition>[0]) {
         return props.children;
     }
     if (!props.absolute) {
-      return <>
-        {prevChldren}
-        {currentChldren}
-      </>
+        return <>
+            {prevChldren}
+            {currentChldren}
+        </>
     }
     return <div style={{ position: 'relative', ...(props.absoluteStyle || {}) }}>
         {renderLayout(prevChldren, 'leave')}
@@ -333,8 +336,8 @@ const Css = (props: Parameters<TransitionGroup['Css']>[0]) => {
                     }}
                 />
             ) : (
-                false
-            )}
+                    false
+                )}
         </div>
     );
 };
@@ -352,8 +355,8 @@ const Children: Transition['Children'] = function (
     const [children, setChildren] = useState(null as any);
     const latestProps = useLatest<Parameters<Transition['Children']>[0]>(props)
 
-    const hook = (name: TransitionEventNameType) => {
-        latestProps.current[name] && (latestProps.current as any)[name]();
+    const hook = (name: TransitionEventNameType, done?: Function) => {
+        latestProps.current[name] && (latestProps.current as any)[name]($el.current, done);
     };
 
 
@@ -366,9 +369,8 @@ const Children: Transition['Children'] = function (
             enterActiveClass: props.enterActiveClass || `${nameTransition}-enter-active`,
             leaveActiveClass: props.leaveActiveClass || `${nameTransition}-leave-active`,
         };
-    }, [
-        props.status,
-        props.name,
+    }, props.css === false ? [] : [
+        nameTransition,
         props.enterToClass,
         props.leaveToClass,
         props.enterActiveClass,
@@ -378,12 +380,19 @@ const Children: Transition['Children'] = function (
     ]);
 
     const classNameHook = useMemo(() => {
+        if (props.css === false) {
+            return {
+                before: '',
+                active: '',
+                to: ''
+            }
+        }
         return {
             before: props.status === 'remove' ? classNaames.leaveClass : classNaames.enterClass,
             active: props.status === 'remove' ? classNaames.leaveActiveClass : classNaames.enterActiveClass,
             to: props.status === 'new' ? classNaames.enterToClass : classNaames.leaveToClass,
         }
-    }, [
+    }, props.css === false ? [] : [
         props.status,
         classNaames.leaveActiveClass,
         classNaames.enterActiveClass,
@@ -401,17 +410,24 @@ const Children: Transition['Children'] = function (
             _run = true;
             isAnimationEnd.current = false;
             requestAnimationFrame(() => {
+                hook(hookLifeCycle.before);
+                if (props.css === false) {
+                    requestAnimationFrame(enterHook);
+                } else {
                     $el.current.classList.remove(
                         classNaames.leaveActiveClass,
                         classNaames.enterActiveClass,
                         classNaames.enterToClass,
                         classNaames.leaveToClass,
+                        classNaames.enterClass,
+                        classNaames.leaveClass
                     )
-                $el.current.classList.add(classNameHook.active)
-                requestAnimationFrame(() => {
-                    $el.current.classList.remove(classNaames.enterClass, classNaames.leaveClass);
-                    enterHook();
-                })
+                    $el.current.classList.add(classNameHook.active);
+                    requestAnimationFrame(() => {
+                        // $el.current.classList.remove(classNaames.enterClass, classNaames.leaveClass);
+                        enterHook();
+                    })
+                }
             })
             stopTransitionEnd.current();
         }
@@ -448,9 +464,11 @@ const Children: Transition['Children'] = function (
     }, [props.status])
 
     const enterHook = () => {
-        hook(hookLifeCycle.before);
-        $el.current.classList.add(classNameHook.to);
-        hook(hookLifeCycle.run);
+        
+        (props.css !== false) && $el.current.classList.add(classNameHook.to);
+        hook(hookLifeCycle.run, () => {
+            end();
+        });
         setChildren(renderChildren(true, true));
         const end = () => {
             if (!$el.current) return;
@@ -464,7 +482,7 @@ const Children: Transition['Children'] = function (
             stopTransitionEnd.current = () => {
                 clearTimeout(tiemout);
             };
-        } else {
+        } else if (props.css !== false) {
             const { stop } = listenerTransitionEnd($el.current, props.type || 'transition', end);
             stopTransitionEnd.current = stop as any;
         }
@@ -518,7 +536,7 @@ const Children: Transition['Children'] = function (
 } as any;
 
 // eslint-disable-next-line no-redeclare
-const TransitionGroup: TransitionGroup = function (props: { children?: any; name?: string }) {
+const TransitionGroup: TransitionGroup = function (props: Parameters<TransitionGroup>[0]) {
     const prevChildren = useRef();
     const catchPrevChildren = useRef([]);
     const children = useMemo(() => {
@@ -540,6 +558,7 @@ const TransitionGroup: TransitionGroup = function (props: { children?: any; name
             const childrenProps = item.type === Children ? item.props : { children: item };
             return <Children
                 name={props.name}
+                type={props.type}
                 {...childrenProps}
                 status={status === StatusCreate ? 'new' : 'remove'}
                 key={item.key}
