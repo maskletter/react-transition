@@ -1,5 +1,106 @@
 import { useLayoutEffect, useRef } from "react";
 
+export const TransitionClassName = [
+  'enterClass',
+  'leaveClass',
+  'appearClass',
+  'enterToClass',
+  'leaveToClass',
+  'appearToClass',
+  'enterActiveClass',
+  'leaveActiveClass',
+  'appearActiveClass',
+] as const;
+export const TransitionEventName = [
+  'onBeforeEnter',
+  'onBeforeLeave',
+  'onBeforeAppear',
+  'onEnter',
+  'onLeave',
+  'onAppear',
+  'onAfterEnter',
+  'onAfterLeave',
+  'onAfterAppear',
+  'onTransitionEnd',
+] as const;
+export type TransitionTuple<T extends ReadonlyArray<string | number>, J, K = null, Y = null> = {
+  [a in T[number]]?: a extends K ? Y : J;
+};
+export type Duration = number | { leave?: number, enter?: number }
+export type TransitionTupleFloat<T extends ReadonlyArray<string | number>> = T[number];
+export type TransitionMode = 'out-in' | 'in-out' | 'time';
+export type TransitionModeTime = number;
+// eslint-disable-next-line no-redeclare
+export type TransitionClassName = TransitionTuple<typeof TransitionClassName, string>;
+export type TransitionEvent = TransitionTuple<typeof TransitionEventName, (el: HTMLElement) => void, 'onEnter' | 'onLeave', (el: HTMLElement, done: Function) => void>;
+export type TransitionEventNameType = TransitionTupleFloat<typeof TransitionEventName>;
+export interface Transition {
+  (
+      props: {
+          children?: any;
+          name?: string;
+          css?: boolean;
+          type?: TransitionType;
+          appear?: boolean;
+          mode?: TransitionMode;
+          duration?: Duration;
+          /**动画过程中的样式，加载到执行元素上 */
+          activeStyle?: React.CSSProperties | ((status: 'default' | 'enter' | 'leave') => React.CSSProperties);
+          /**
+           * 如果设置了mode默认是根据上一个组件动画结束切换，可以通过设置此属性修改组件进程离场时机
+           */
+          modeTime?: TransitionModeTime;
+          /**
+           * 设置absolute之后，会在元素上层创建一个relative属性元素
+           */
+          absolute?: boolean;
+          /**绝对定位情况下样式，加载到执行元素上一次创建带有relative的元素上 */
+          absoluteStyle?: React.CSSProperties;
+      } & TransitionClassName &
+          TransitionEvent,
+  ): JSX.Element;
+  Children: (
+      props: {
+          children?: JSX.Element | never[] | ((status: 'default' | 'enter' | 'leave', active: boolean) => JSX.Element);
+          status?: 'remove' | 'new' | 'old';
+          css?: boolean;
+          name?: string;
+          type?: TransitionType;
+          disabled?: boolean;
+          /**动画过程中的样式 */
+          activeStyle?: React.CSSProperties | ((status: 'default' | 'enter' | 'leave') => React.CSSProperties);
+          duration?: Duration;
+      } & TransitionClassName &
+          TransitionEvent,
+  ) => JSX.Element;
+}
+export interface TransitionGroup {
+  (props: { children?: any; name?: string; type?: TransitionType; css?: boolean; }): JSX.Element;
+  /**
+   * 用于拓展transition-group进场离场动画效果
+   *
+   * 配合Children标签使用
+   * ```tsx
+   * <Children render={(status, active) => {
+   *    return <Css status={status} active={active}>内容</Css>
+   * }} />
+   * ```
+   */
+  Css: (props: {
+      /**正常状态样式 */
+      activeStyle?: React.CSSProperties;
+      /**进场时样式 */
+      initStyle?: React.CSSProperties;
+      /**进场时样式 */
+      style?: React.CSSProperties;
+      children?: any;
+      status: 'default' | 'enter' | 'leave';
+      active: boolean;
+      transition?: string | ((type: Parameters<TransitionGroup['Css']>[0]['status']) => string);
+  }) => JSX.Element;
+}
+
+
 const TRANSITION = 'transition';
 const ANIMATION = 'animation';
 function getTimeout(delays: string[], durations: string[]): number {

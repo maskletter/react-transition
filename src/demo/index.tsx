@@ -2,12 +2,14 @@ import React, { useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Transition, TransitionGroup } from '../index'
 import './index.less'
+import './animate.min.css';
 // import { Transition } from '../../es/index'
 
+declare const Velocity: any;
 
 const A = () => {
     const [show, _setShow] = useState([false, true, false, false, false, false])
-    const [list, setList] = useState([1, 2, 3, 4, 5, 6, 7])
+    const [list, setList] = useState([1, 2])
     const [list2, setList2] = useState([1,3,4])
     const [list3, setList3] = useState([1,2])
     const currentListLength = useRef(list.length);
@@ -35,7 +37,7 @@ const A = () => {
         <div className='block-content'>
             <Transition name='show1' activeStyle={() => {
                 return { transitionDelay: '0.2s' }
-            }}>
+            }} >
                 {
                     show[0] ? <div className='block' key={'show1'} style={{ background: 'red' }}></div> : false
                 }
@@ -43,9 +45,28 @@ const A = () => {
         </div>
         <br />
         <div className='block-content'>
-            <Transition name='show2'>
+            <Transition name='show2' 
+                css={false}
+                onBeforeEnter={e => {
+                    e.style.opacity = '0'
+                    Velocity(e, { translateX: '100px' }, { duration: 0 })
+                }}
+                onEnter={(el, d) => {
+                    Velocity(el, { opacity: 1, translateX: '0px' }, { duration: 300, complete: d })
+                }}
+                onLeave={(el, done) => {
+                    Velocity(el, { translateX: '15px', rotateZ: '50deg' }, { duration: 600 })
+                    Velocity(el, { rotateZ: '100deg' }, { loop: 2 })
+                    Velocity(el, {
+                        rotateZ: '45deg',
+                        translateY: '30px',
+                        translateX: '30px',
+                        opacity: 0
+                    }, { complete: done })
+                }}
+                onAfterEnter={e => console.log(e.className)}>
                 {
-                    show[0] ? <div className='block' key={'show1'} style={{ background: 'red' }}></div> : false
+                    show[0] ? <div className='block' key={'show1'} style={{ background: 'red' }}>1</div> : false
                 }
             </Transition>
         </div>
@@ -126,7 +147,7 @@ const A = () => {
         <button onClick={() => {
             const _newList = [...list];
             _newList.splice(1, 0, Math.random())
-            _newList.splice(4, 0, Math.random())
+            // _newList.splice(4, 0, Math.random())
             console.log('addd', _newList)
             setList(_newList)
         }}>追加</button>
@@ -138,9 +159,17 @@ const A = () => {
             setList(_newList)
         }}>删减</button>
         <div className='block-scroll'>
-            <TransitionGroup name='show2'>
+            {/* <TransitionGroup name='show2'>
                 {
                     list.map((item) => <div key={item} className='block-list'>{item}</div>)
+                }
+            </TransitionGroup> */}
+        </div>
+        <hr/>
+        <div className='block-scroll'>
+            <TransitionGroup name='show3' type="animation">
+                {
+                    list.map((item) => <div key={item} className='block-list animate__animated'>{item}</div>)
                 }
             </TransitionGroup>
         </div>
